@@ -1,0 +1,49 @@
+{
+  "name": "cryptunnel",
+  "version": "1.0.0",
+  "description": "Node SDK for Cryptunnel - accept crypto payments straight to your own wallets",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "npm run build && node --test test/*.test.js",
+    "types:generate": "openapi-typescript https://cryptunnel.io/openapi -o src/generated/api.ts",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "cryptunnel",
+    "crypto",
+    "payments",
+    "usdt",
+    "tron",
+    "ethereum",
+    "telegram"
+  ],
+  "license": "MIT",
+  "homepage": "https://cryptunnel.io",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cryptunnel/cryptunnel-node.git"
+  },
+  "bugs": {
+    "url": "https://github.com/cryptunnel/cryptunnel-node/issues"
+  },
+  "devDependencies": {
+    "@types/node": "22.10.2",
+    "openapi-typescript": "7.4.4",
+    "typescript": "5.8.3"
+  }
+}
