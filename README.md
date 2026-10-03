@@ -1,5 +1,7 @@
 # cryptunnel
 
+[![Test](https://github.com/cryptunnel/cryptunnel-node/actions/workflows/test.yml/badge.svg)](https://github.com/cryptunnel/cryptunnel-node/actions/workflows/test.yml) [![npm](https://img.shields.io/npm/v/cryptunnel)](https://www.npmjs.com/package/cryptunnel) [![Node](https://img.shields.io/node/v/cryptunnel)](https://www.npmjs.com/package/cryptunnel) [![Types](https://img.shields.io/npm/types/cryptunnel)](https://www.npmjs.com/package/cryptunnel) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 Node SDK for [Cryptunnel](https://cryptunnel.io) - accept crypto payments straight into your own
 wallets. Zero runtime dependencies: native `fetch` and `node:crypto`.
 
