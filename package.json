@@ -44,6 +44,6 @@
   "devDependencies": {
     "@types/node": "22.10.2",
     "openapi-typescript": "7.4.4",
-    "typescript": "5.8.3"
+    "typescript": "7.0.2"
   }
 }
