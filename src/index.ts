@@ -1,4 +1,4 @@
-export { Cryptunnel, DEFAULT_BASE_URL, DEFAULT_TIMEOUT_MS, TERMINAL_STATUSES } from './client.js'
+export { Cryptunnel, DEFAULT_BASE_URL, DEFAULT_TIMEOUT_MS, TERMINAL_STATUSES, userAgent } from './client.js'
 export type { CryptunnelOptions } from './client.js'
 export {
   ApiError,

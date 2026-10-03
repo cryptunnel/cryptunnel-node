@@ -8,6 +8,7 @@ import {
   NotFoundError,
   RateLimitError,
   ValidationError,
+  userAgent,
 } from '../dist/index.js'
 
 const realFetch = globalThis.fetch
@@ -117,4 +118,22 @@ test('baseUrl is honoured', async () => {
   await local.getMerchant()
 
   assert.equal(calls[0].url.origin, 'http://localhost:3000')
+})
+
+test('requests carry the sdk user agent', async () => {
+  const calls = stubFetch(200, {})
+
+  await sandboxClient().getMerchant()
+
+  assert.match(calls[0].init.headers['user-agent'], /^cryptunnel-node\/\d+\.\d+\.\d+\S* node\/\S+ \(\S+ \S+\)$/)
+})
+
+test('the app name is appended to the user agent', async () => {
+  const calls = stubFetch(200, {})
+  const client = new Cryptunnel({ merchantId: 'm', apiKey: 'k', app: 'my-shop/2.0' })
+
+  await client.getMerchant()
+
+  assert.ok(calls[0].init.headers['user-agent'].endsWith(' my-shop/2.0'))
+  assert.ok(userAgent().startsWith('cryptunnel-node/1.1.0 '))
 })

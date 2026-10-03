@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module'
 import type {
   CreateH2hPaymentOptions,
   CreateWidgetPaymentOptions,
@@ -15,6 +16,18 @@ import { ApiError, errorFromResponse, PaymentTimeoutError, RateLimitError } from
 export const DEFAULT_BASE_URL = 'https://api.cryptunnel.io'
 export const DEFAULT_TIMEOUT_MS = 30_000
 
+const { version } = createRequire(import.meta.url)('../package.json') as { version: string }
+
+/**
+ * The User-Agent every request carries: package, Node and platform, plus your `app` if given.
+ * Cryptunnel uses it to see which SDK versions merchants integrate with. Nothing identifying is
+ * included - no hostname, no paths.
+ */
+export function userAgent(app?: string): string {
+  const base = `cryptunnel-node/${version} node/${process.versions.node} (${process.platform} ${process.arch})`
+  return app ? `${base} ${app}` : base
+}
+
 /** Statuses a payment never leaves. */
 export const TERMINAL_STATUSES: readonly PaymentStatus[] = ['confirmed', 'confirmed_manual', 'failed', 'expired']
 
@@ -25,6 +38,8 @@ export interface CryptunnelOptions {
   sandbox?: boolean
   baseUrl?: string
   timeoutMs?: number
+  /** Your application, appended to the User-Agent, e.g. `my-shop/2.0`. */
+  app?: string
 }
 
 /**
@@ -47,6 +62,7 @@ export class Cryptunnel {
     this.timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS
     this.headers = {
       'content-type': 'application/json',
+      'user-agent': userAgent(options.app),
       'x-merchant-id': options.merchantId,
       'x-api-key': options.apiKey,
     }
