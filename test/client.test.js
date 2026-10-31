@@ -135,5 +135,32 @@ test('the app name is appended to the user agent', async () => {
   await client.getMerchant()
 
   assert.ok(calls[0].init.headers['user-agent'].endsWith(' my-shop/2.0'))
-  assert.ok(userAgent().startsWith('cryptunnel-node/1.1.0 '))
+  assert.ok(userAgent().startsWith('cryptunnel-node/1.2.0 '))
+})
+
+test('appealPayment posts the hash under the payment', async () => {
+  const calls = stubFetch(200, { id: 42, payment_id: 'pay-1', status: 'waiting' })
+
+  const appeal = await sandboxClient().appealPayment('pay-1', '0xabc')
+
+  assert.equal(appeal.status, 'waiting')
+  assert.equal(calls[0].init.method, 'POST')
+  assert.equal(calls[0].url.pathname, '/v1/payments/pay-1/appeals')
+  assert.deepEqual(JSON.parse(calls[0].init.body), { hash: '0xabc' })
+})
+
+test('decideAppeal posts the decision and the reads hit the appeal paths', async () => {
+  const calls = stubFetch(200, { outcome: 'approved', appeal: { id: 42, status: 'approved' } })
+  const client = sandboxClient()
+
+  const result = await client.decideAppeal('pay-1', 42, 'approved')
+  await client.getAppeal('pay-1', 42)
+  await client.listAppeals('pay-1')
+
+  assert.equal(result.outcome, 'approved')
+  assert.equal(calls[0].url.pathname, '/v1/payments/pay-1/appeals/42/decision')
+  assert.deepEqual(JSON.parse(calls[0].init.body), { decision: 'approved' })
+  assert.equal(calls[1].url.pathname, '/v1/payments/pay-1/appeals/42')
+  assert.equal(calls[1].init.method, 'GET')
+  assert.equal(calls[2].url.pathname, '/v1/payments/pay-1/appeals')
 })

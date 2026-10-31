@@ -73,6 +73,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/payments/{id}/appeals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Every hash submitted on the payment - by the buyer on the failed screen, from your cabinet or through this API - newest first, each with its status. */
+        get: operations["List Appeals"];
+        put?: never;
+        /** @description Manual confirmation, step one: submit the hash of the transaction the buyer says paid a failed payment. The transaction is checked against the payment - network, on-chain status, coin, recipient, amount, time, hash not used before. An exact transfer confirms the payment at once (status confirmed: the payment is confirmed_manual and the webhook fires). A transfer that reached your wallet but does not match opens an appeal (status waiting) carrying the checks and an id - decide it with the decision call, or leave it to Cryptunnel operations. A transaction that cannot be this payment is refused with a reason. A payment that already has an open appeal returns that appeal instead of a second one. Only failed payments can be appealed. */
+        post: operations["Create Appeal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/payments/{id}/appeals/{appealId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Read one appeal of the payment: its status, checks and decision. */
+        get: operations["Get Appeal"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/payments/{id}/appeals/{appealId}/decision": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Manual confirmation, step two: decide a waiting appeal. approved confirms the payment with the transfer as it arrived - the webhook carries received_amount and received_currency - and charges the fee; wrong_amount, too_late and not_this_payment reject it and the buyer sees the reason. The first decision wins: when Cryptunnel operations or your Telegram pressed first, the outcome is already_decided and the appeal carries their decision. */
+        post: operations["Decide Appeal"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/merchants": {
         parameters: {
             query?: never;
@@ -231,6 +283,426 @@ export interface components {
              * @example 0x8dF3b1A1c1E71f6D4A49D6ce23eB8875eDA41cf5
              */
             wallet_address: string;
+        };
+        Appeal: {
+            /**
+             * @description The id of the appeal - the decision call needs it
+             * @example 42
+             */
+            id: number;
+            /**
+             * @description The id of the payment
+             * @example n9cdFaTccYbXecVekHKW8Q
+             */
+            payment_id: string;
+            /**
+             * @description confirmed - the transfer matched and the payment is confirmed_manual; waiting - a mismatch, decide it with the decision call; approved or rejected - decided; refused - the transaction cannot be this payment, see refusal_reason
+             * @example waiting
+             * @enum {string}
+             */
+            status: "confirmed" | "waiting" | "approved" | "rejected" | "refused";
+            /**
+             * @description Why a refused appeal was refused: not_found, wrong_recipient, failed_on_chain, before_pending, hash_used, sandbox_mismatch
+             * @example null
+             * @enum {string|null}
+             */
+            refusal_reason: "not_found" | "wrong_recipient" | "failed_on_chain" | "before_pending" | "hash_used" | "sandbox_mismatch" | null;
+            /**
+             * @description The transaction hash, normalized
+             * @example 0x4e3a1f0c9d2b7e6a5f4c3b2a1908f7e6d5c4b3a29180f7e6d5c4b3a291807f6e
+             */
+            hash: string;
+            /**
+             * @description The network the transaction was found on, null when it was not found
+             * @example Tron (TRC20)
+             */
+            network: string | null;
+            /**
+             * @description The crypto amount the payment expected
+             * @example 1.000023
+             */
+            expected_amount: string | null;
+            /**
+             * @description The crypto currency the payment expected
+             * @example USDT
+             */
+            currency: string | null;
+            /**
+             * @description The amount the transaction carried, null when it was not read
+             * @example 0.930023
+             */
+            received_amount: string | null;
+            /**
+             * @description The coin the transaction carried, null when unknown
+             * @example USDT
+             */
+            received_currency: string | null;
+            checks: components["schemas"]["AppealChecks"] | null;
+            /**
+             * @description False when the transfer is in a coin Cryptunnel does not know - such an appeal can only be rejected
+             * @example true
+             */
+            can_approve: boolean;
+            /**
+             * @description The decision taken, null while waiting
+             * @example null
+             * @enum {string|null}
+             */
+            decision: "approved" | "wrong_amount" | "too_late" | "not_this_payment" | "payment_not_failed" | "hash_used" | null;
+            /**
+             * @description Who decided: the merchant through the API, the cabinet or Telegram, or Cryptunnel operations
+             * @example null
+             */
+            decided_by: string | null;
+            /**
+             * @description When it was decided
+             * @example null
+             */
+            decided_at: string | null;
+            /**
+             * @description When the hash was submitted
+             * @example 2026-10-31T12:00:00.000Z
+             */
+            created_at: string;
+        };
+        /** @description The seven checks of the transaction against the payment. All pass on an automatic confirmation; a waiting appeal has at least one failed line, with the expected and the received value side by side. */
+        AppealChecks: {
+            network: {
+                /** @example true */
+                passed: boolean;
+                /**
+                 * @description What the payment expected, as text
+                 * @example 1.000023
+                 */
+                expected?: string;
+                /**
+                 * @description What the transaction carried, as text
+                 * @example 0.930023
+                 */
+                actual?: string;
+                /** @description On the amount check of a short transfer: the merchant tolerance verdict */
+                tolerance?: {
+                    /**
+                     * @description The underpayment tolerance set on the merchant when the hash was checked
+                     * @example percent
+                     * @enum {string}
+                     */
+                    type: "none" | "fixed" | "percent";
+                    /**
+                     * @description The allowance: a percent of the invoice, or a fixed amount in the invoice currency
+                     * @example 2
+                     */
+                    value?: number;
+                    /**
+                     * @description Whether the shortfall is inside the allowance
+                     * @example false
+                     */
+                    within: boolean;
+                    /**
+                     * @description How much is missing, in the crypto currency
+                     * @example 0.07
+                     */
+                    shortfall: string;
+                    /**
+                     * @description The same shortfall priced in the invoice currency
+                     * @example 0.07
+                     */
+                    shortfall_invoice: string;
+                    /**
+                     * @description The invoice currency
+                     * @example USD
+                     */
+                    invoice_currency: string;
+                };
+            };
+            success: {
+                /** @example true */
+                passed: boolean;
+                /**
+                 * @description What the payment expected, as text
+                 * @example 1.000023
+                 */
+                expected?: string;
+                /**
+                 * @description What the transaction carried, as text
+                 * @example 0.930023
+                 */
+                actual?: string;
+                /** @description On the amount check of a short transfer: the merchant tolerance verdict */
+                tolerance?: {
+                    /**
+                     * @description The underpayment tolerance set on the merchant when the hash was checked
+                     * @example percent
+                     * @enum {string}
+                     */
+                    type: "none" | "fixed" | "percent";
+                    /**
+                     * @description The allowance: a percent of the invoice, or a fixed amount in the invoice currency
+                     * @example 2
+                     */
+                    value?: number;
+                    /**
+                     * @description Whether the shortfall is inside the allowance
+                     * @example false
+                     */
+                    within: boolean;
+                    /**
+                     * @description How much is missing, in the crypto currency
+                     * @example 0.07
+                     */
+                    shortfall: string;
+                    /**
+                     * @description The same shortfall priced in the invoice currency
+                     * @example 0.07
+                     */
+                    shortfall_invoice: string;
+                    /**
+                     * @description The invoice currency
+                     * @example USD
+                     */
+                    invoice_currency: string;
+                };
+            };
+            coin: {
+                /** @example true */
+                passed: boolean;
+                /**
+                 * @description What the payment expected, as text
+                 * @example 1.000023
+                 */
+                expected?: string;
+                /**
+                 * @description What the transaction carried, as text
+                 * @example 0.930023
+                 */
+                actual?: string;
+                /** @description On the amount check of a short transfer: the merchant tolerance verdict */
+                tolerance?: {
+                    /**
+                     * @description The underpayment tolerance set on the merchant when the hash was checked
+                     * @example percent
+                     * @enum {string}
+                     */
+                    type: "none" | "fixed" | "percent";
+                    /**
+                     * @description The allowance: a percent of the invoice, or a fixed amount in the invoice currency
+                     * @example 2
+                     */
+                    value?: number;
+                    /**
+                     * @description Whether the shortfall is inside the allowance
+                     * @example false
+                     */
+                    within: boolean;
+                    /**
+                     * @description How much is missing, in the crypto currency
+                     * @example 0.07
+                     */
+                    shortfall: string;
+                    /**
+                     * @description The same shortfall priced in the invoice currency
+                     * @example 0.07
+                     */
+                    shortfall_invoice: string;
+                    /**
+                     * @description The invoice currency
+                     * @example USD
+                     */
+                    invoice_currency: string;
+                };
+            };
+            recipient: {
+                /** @example true */
+                passed: boolean;
+                /**
+                 * @description What the payment expected, as text
+                 * @example 1.000023
+                 */
+                expected?: string;
+                /**
+                 * @description What the transaction carried, as text
+                 * @example 0.930023
+                 */
+                actual?: string;
+                /** @description On the amount check of a short transfer: the merchant tolerance verdict */
+                tolerance?: {
+                    /**
+                     * @description The underpayment tolerance set on the merchant when the hash was checked
+                     * @example percent
+                     * @enum {string}
+                     */
+                    type: "none" | "fixed" | "percent";
+                    /**
+                     * @description The allowance: a percent of the invoice, or a fixed amount in the invoice currency
+                     * @example 2
+                     */
+                    value?: number;
+                    /**
+                     * @description Whether the shortfall is inside the allowance
+                     * @example false
+                     */
+                    within: boolean;
+                    /**
+                     * @description How much is missing, in the crypto currency
+                     * @example 0.07
+                     */
+                    shortfall: string;
+                    /**
+                     * @description The same shortfall priced in the invoice currency
+                     * @example 0.07
+                     */
+                    shortfall_invoice: string;
+                    /**
+                     * @description The invoice currency
+                     * @example USD
+                     */
+                    invoice_currency: string;
+                };
+            };
+            amount: {
+                /** @example true */
+                passed: boolean;
+                /**
+                 * @description What the payment expected, as text
+                 * @example 1.000023
+                 */
+                expected?: string;
+                /**
+                 * @description What the transaction carried, as text
+                 * @example 0.930023
+                 */
+                actual?: string;
+                /** @description On the amount check of a short transfer: the merchant tolerance verdict */
+                tolerance?: {
+                    /**
+                     * @description The underpayment tolerance set on the merchant when the hash was checked
+                     * @example percent
+                     * @enum {string}
+                     */
+                    type: "none" | "fixed" | "percent";
+                    /**
+                     * @description The allowance: a percent of the invoice, or a fixed amount in the invoice currency
+                     * @example 2
+                     */
+                    value?: number;
+                    /**
+                     * @description Whether the shortfall is inside the allowance
+                     * @example false
+                     */
+                    within: boolean;
+                    /**
+                     * @description How much is missing, in the crypto currency
+                     * @example 0.07
+                     */
+                    shortfall: string;
+                    /**
+                     * @description The same shortfall priced in the invoice currency
+                     * @example 0.07
+                     */
+                    shortfall_invoice: string;
+                    /**
+                     * @description The invoice currency
+                     * @example USD
+                     */
+                    invoice_currency: string;
+                };
+            };
+            time: {
+                /** @example true */
+                passed: boolean;
+                /**
+                 * @description What the payment expected, as text
+                 * @example 1.000023
+                 */
+                expected?: string;
+                /**
+                 * @description What the transaction carried, as text
+                 * @example 0.930023
+                 */
+                actual?: string;
+                /** @description On the amount check of a short transfer: the merchant tolerance verdict */
+                tolerance?: {
+                    /**
+                     * @description The underpayment tolerance set on the merchant when the hash was checked
+                     * @example percent
+                     * @enum {string}
+                     */
+                    type: "none" | "fixed" | "percent";
+                    /**
+                     * @description The allowance: a percent of the invoice, or a fixed amount in the invoice currency
+                     * @example 2
+                     */
+                    value?: number;
+                    /**
+                     * @description Whether the shortfall is inside the allowance
+                     * @example false
+                     */
+                    within: boolean;
+                    /**
+                     * @description How much is missing, in the crypto currency
+                     * @example 0.07
+                     */
+                    shortfall: string;
+                    /**
+                     * @description The same shortfall priced in the invoice currency
+                     * @example 0.07
+                     */
+                    shortfall_invoice: string;
+                    /**
+                     * @description The invoice currency
+                     * @example USD
+                     */
+                    invoice_currency: string;
+                };
+            };
+            unused_hash: {
+                /** @example true */
+                passed: boolean;
+                /**
+                 * @description What the payment expected, as text
+                 * @example 1.000023
+                 */
+                expected?: string;
+                /**
+                 * @description What the transaction carried, as text
+                 * @example 0.930023
+                 */
+                actual?: string;
+                /** @description On the amount check of a short transfer: the merchant tolerance verdict */
+                tolerance?: {
+                    /**
+                     * @description The underpayment tolerance set on the merchant when the hash was checked
+                     * @example percent
+                     * @enum {string}
+                     */
+                    type: "none" | "fixed" | "percent";
+                    /**
+                     * @description The allowance: a percent of the invoice, or a fixed amount in the invoice currency
+                     * @example 2
+                     */
+                    value?: number;
+                    /**
+                     * @description Whether the shortfall is inside the allowance
+                     * @example false
+                     */
+                    within: boolean;
+                    /**
+                     * @description How much is missing, in the crypto currency
+                     * @example 0.07
+                     */
+                    shortfall: string;
+                    /**
+                     * @description The same shortfall priced in the invoice currency
+                     * @example 0.07
+                     */
+                    shortfall_invoice: string;
+                    /**
+                     * @description The invoice currency
+                     * @example USD
+                     */
+                    invoice_currency: string;
+                };
+            };
         };
     };
     responses: never;
@@ -691,6 +1163,184 @@ export interface operations {
                         offset: number;
                     };
                 };
+            };
+        };
+    };
+    "List Appeals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The appeals of the payment */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @description Every submission on the payment, newest first */
+                        items: components["schemas"]["Appeal"][];
+                    };
+                };
+            };
+            /** @description Payment not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    "Create Appeal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /**
+                     * @description The hash of the transaction the buyer says paid this payment, on the network the payment expects
+                     * @example 0x4e3a1f0c9d2b7e6a5f4c3b2a1908f7e6d5c4b3a29180f7e6d5c4b3a291807f6e
+                     */
+                    hash: string;
+                };
+            };
+        };
+        responses: {
+            /** @description The appeal, with its status and checks */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Appeal"];
+                };
+            };
+            /** @description INVALID_HASH - not a transaction hash of the payment network */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Payment not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description APPEAL_NOT_AVAILABLE - the payment is not failed, or is a top-up */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description CHECK_FAILED - the blockchain node did not answer, try again */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    "Get Appeal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                appealId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The appeal */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Appeal"];
+                };
+            };
+            /** @description Payment or appeal not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    "Decide Appeal": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                appealId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /**
+                     * @description approved confirms the payment with the transfer as it arrived and charges the fee; the other three reject the appeal and the buyer sees the reason
+                     * @example approved
+                     * @enum {string}
+                     */
+                    decision: "approved" | "wrong_amount" | "too_late" | "not_this_payment";
+                };
+            };
+        };
+        responses: {
+            /** @description The outcome and the appeal after it */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /**
+                         * @description approved - the payment is confirmed_manual; rejected - recorded with your reason; already_decided - somebody pressed first, read the appeal; payment_not_failed and hash_used - the approval was refused and recorded as such
+                         * @example approved
+                         * @enum {string}
+                         */
+                        outcome: "approved" | "rejected" | "already_decided" | "payment_not_failed" | "hash_used";
+                        appeal: components["schemas"]["Appeal"];
+                    };
+                };
+            };
+            /** @description Payment or appeal not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description APPEAL_UNKNOWN_COIN - the transfer is in a coin Cryptunnel does not know and can only be rejected */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

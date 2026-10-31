@@ -55,6 +55,25 @@ export type Merchant = JsonResponse<operations['Get Merchant Info']>
 
 export type Currency = JsonResponse<operations['List Currencies']>[number]
 
+/**
+ * A transaction hash submitted against a failed payment and what the check made of it - the answer of
+ * `appealPayment`. `status` is `confirmed`, `waiting`, `refused`, `approved` or `rejected`; a waiting
+ * appeal has at least one failed line in `checks`, with `expected` and `actual` side by side.
+ */
+export type Appeal = components['schemas']['Appeal']
+
+export type AppealChecks = components['schemas']['AppealChecks']
+
+export type AppealStatus = Appeal['status']
+
+export type AppealList = JsonResponse<operations['List Appeals']>
+
+/** What `decideAppeal` takes: `approved`, `wrong_amount`, `too_late` or `not_this_payment`. */
+export type AppealDecision = JsonBody<operations['Decide Appeal']>['decision']
+
+/** What `decideAppeal` returns: the `outcome` and the appeal after it. */
+export type AppealDecisionResult = JsonResponse<operations['Decide Appeal']>
+
 export type PaymentStatus = Payment['status']
 
 export type FeePayer = NonNullable<CreateWidgetBody['fee_payer']>

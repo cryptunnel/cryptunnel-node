@@ -72,12 +72,21 @@ fresh timestamp over the same body.
 | `listPayments({ limit, offset })` | `GET /v1/payments` |
 | `listCurrencies()` | `GET /v1/currencies` |
 | `getMerchant()` | `GET /v1/merchants` |
+| `appealPayment(paymentId, transactionHash)` | `POST /v1/payments/{id}/appeals` |
+| `listAppeals(paymentId)` | `GET /v1/payments/{id}/appeals` |
+| `getAppeal(paymentId, appealId)` | `GET /v1/payments/{id}/appeals/{appealId}` |
+| `decideAppeal(paymentId, appealId, decision)` | `POST /v1/payments/{id}/appeals/{appealId}/decision` |
 | `verifyWebhook(secret, headers, rawBody)` | local, no request |
 | `waitForPayment(paymentId)` | polls `GET /v1/payments/{id}` |
 
 Payment creation is idempotent on `externalId`: a retry after a network timeout returns the payment
 you already created instead of a second one. Repeating an `externalId` with a different amount or
 currency is rejected with `PAYMENT_ALREADY_EXISTS`.
+
+A `failed` payment the buyer did pay - late, short, on another network - is confirmed by hand in two
+calls: `appealPayment` checks the transaction hash and answers `confirmed` (done), `waiting` (a
+mismatch - read `checks`) or `refused` (`refusal_reason`); `decideAppeal` approves or rejects a
+waiting one. Details on [Manual confirmation by hash](https://docs.cryptunnel.io/docs/manual-confirmation).
 
 `getPayment` returns a union: `created` and `expired` payments carry no crypto amount and no wallet
 address, because nobody has picked a currency for them yet. Narrow with `in` and TypeScript hands

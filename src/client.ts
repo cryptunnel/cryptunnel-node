@@ -1,5 +1,9 @@
 import { createRequire } from 'node:module'
 import type {
+  Appeal,
+  AppealDecision,
+  AppealDecisionResult,
+  AppealList,
   CreateH2hPaymentOptions,
   CreateWidgetPaymentOptions,
   Currency,
@@ -110,6 +114,38 @@ export class Cryptunnel {
   /** Read your merchant - the call that tells you the credentials work. */
   getMerchant(): Promise<Merchant> {
     return this.request('GET', '/v1/merchants')
+  }
+
+  /**
+   * Manual confirmation, step one: check the buyer's transaction against a failed payment.
+   *
+   * `status` tells the result: `confirmed` - the transfer matched and the payment is `confirmed_manual`
+   * now; `waiting` - the transfer reached your wallet but does not match, read `checks` and decide with
+   * `decideAppeal`; `refused` - the transaction cannot be this payment, `refusal_reason` says why. A
+   * payment with an open appeal returns it instead of a second one.
+   */
+  appealPayment(paymentId: string, transactionHash: string): Promise<Appeal> {
+    return this.request('POST', `/v1/payments/${encodeURIComponent(paymentId)}/appeals`, { body: { hash: transactionHash } })
+  }
+
+  /** Every hash submitted on the payment - by the buyer, from the cabinet or through the API - newest first. */
+  listAppeals(paymentId: string): Promise<AppealList> {
+    return this.request('GET', `/v1/payments/${encodeURIComponent(paymentId)}/appeals`)
+  }
+
+  /** Read one appeal of the payment. */
+  getAppeal(paymentId: string, appealId: number): Promise<Appeal> {
+    return this.request('GET', `/v1/payments/${encodeURIComponent(paymentId)}/appeals/${appealId}`)
+  }
+
+  /**
+   * Manual confirmation, step two: approve a waiting appeal - the payment is confirmed with the transfer
+   * as it arrived and the fee is charged - or reject it with `wrong_amount`, `too_late` or
+   * `not_this_payment`. The first decision wins: `outcome` is `already_decided` when Cryptunnel support or
+   * your Telegram pressed first, and `appeal` carries their decision.
+   */
+  decideAppeal(paymentId: string, appealId: number, decision: AppealDecision): Promise<AppealDecisionResult> {
+    return this.request('POST', `/v1/payments/${encodeURIComponent(paymentId)}/appeals/${appealId}/decision`, { body: { decision } })
   }
 
   /**

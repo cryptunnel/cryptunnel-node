@@ -3,6 +3,17 @@
 All notable changes to this package are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the package follows semantic versioning.
 
+## [1.2.0] - 2026-10-31
+
+### Added
+
+- Manual confirmation of a failed payment by transaction hash, in two calls: `appealPayment(paymentId,
+  transactionHash)` checks the hash and returns the appeal with its status, checks and id - an exact
+  transfer confirms the payment at once; `decideAppeal(paymentId, appealId, decision)` approves or
+  rejects a waiting one. `listAppeals` and `getAppeal` read them. Types `Appeal`, `AppealChecks`,
+  `AppealStatus`, `AppealList`, `AppealDecision` and `AppealDecisionResult` come from the regenerated
+  spec.
+
 ## [1.1.0] - 2026-10-03
 
 ### Added
