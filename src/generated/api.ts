@@ -796,7 +796,7 @@ export interface operations {
                      */
                     target_currency: string;
                     /**
-                     * @description If true, small trace amount will be added to the payment.
+                     * @description If true, a small trace amount is added so the payment is told apart from others on the same wallet: 1 to 99 units of the last decimal for USDT and USDC (the merchant sets 2, 4 or 6 decimals in the cabinet, 4 by default), 0.0010 to 0.0099 of the invoice currency for other coins.
                      * @default false
                      * @example true
                      */
