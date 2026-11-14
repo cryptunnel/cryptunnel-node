@@ -13,7 +13,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Create a payment and return information about it. Idempotent on external_id: repeating a create with the same external_id, amount and currency returns the payment created first instead of a second one. */
+        /**
+         * Create H2H payment
+         * @description Create a payment for your own checkout page: the response carries the wallet address and the crypto amount the payer must send in target_currency. Idempotent on external_id: repeating a create with the same external_id, amount and currency returns the payment created first instead of a second one.
+         */
         post: operations["Create H2H Payment"];
         delete?: never;
         options?: never;
@@ -30,7 +33,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Create a payment and return a widget url. To redirect the user to the payment page. Idempotent on external_id: repeating a create with the same external_id, amount and currency returns the payment created first instead of a second one. */
+        /**
+         * Create widget payment
+         * @description Create a payment on the Cryptunnel payment page: redirect the payer to the returned url, where they pick a currency and pay. Idempotent on external_id: repeating a create with the same external_id, amount and currency returns the payment created first instead of a second one.
+         */
         post: operations["Create Widget Payment"];
         delete?: never;
         options?: never;
@@ -45,11 +51,17 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Get payment information */
+        /**
+         * Get payment
+         * @description Read one payment by its id: the status, the amount you asked for and, once a currency is picked, the crypto amount and the wallet address. Poll it when you do not take the callback_url webhook.
+         */
         get: operations["Get Payment Info"];
         put?: never;
         post?: never;
-        /** @description Expire payment */
+        /**
+         * Expire payment
+         * @description Cancel a payment nobody has paid yet. Only a payment in status created can be expired; any other status answers WRONG_PAYMENT_STATUS.
+         */
         delete: operations["Expire Payment"];
         options?: never;
         head?: never;
@@ -63,7 +75,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description List payments */
+        /**
+         * List payments
+         * @description Your payments, newest first, a page at a time with limit and offset; total counts all of them.
+         */
         get: operations["List Payments"];
         put?: never;
         post?: never;
@@ -80,10 +95,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Every hash submitted on the payment - by the buyer on the failed screen, from your cabinet or through this API - newest first, each with its status. */
+        /**
+         * List appeals
+         * @description Every hash submitted on the payment - by the buyer on the failed screen, from your cabinet or through this API - newest first, each with its status.
+         */
         get: operations["List Appeals"];
         put?: never;
-        /** @description Manual confirmation, step one: submit the hash of the transaction the buyer says paid a failed payment. The transaction is checked against the payment - network, on-chain status, coin, recipient, amount, time, hash not used before. An exact transfer confirms the payment at once (status confirmed: the payment is confirmed_manual and the webhook fires). A transfer that reached your wallet but does not match opens an appeal (status waiting) carrying the checks and an id - decide it with the decision call, or leave it to Cryptunnel operations. A transaction that cannot be this payment is refused with a reason. A payment that already has an open appeal returns that appeal instead of a second one. Only failed payments can be appealed. */
+        /**
+         * Create appeal
+         * @description Manual confirmation, step one: submit the hash of the transaction the buyer says paid a failed payment. The transaction is checked against the payment - network, on-chain status, coin, recipient, amount, time, hash not used before. An exact transfer confirms the payment at once (status confirmed: the payment is confirmed_manual and the webhook fires). A transfer that reached your wallet but does not match opens an appeal (status waiting) carrying the checks and an id - decide it with the decision call, or leave it to Cryptunnel operations. A transaction that cannot be this payment is refused with a reason. A payment that already has an open appeal returns that appeal instead of a second one. Only failed payments can be appealed.
+         */
         post: operations["Create Appeal"];
         delete?: never;
         options?: never;
@@ -98,7 +119,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Read one appeal of the payment: its status, checks and decision. */
+        /**
+         * Get appeal
+         * @description Read one appeal of the payment: its status, checks and decision.
+         */
         get: operations["Get Appeal"];
         put?: never;
         post?: never;
@@ -117,7 +141,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Manual confirmation, step two: decide a waiting appeal. approved confirms the payment with the transfer as it arrived - the webhook carries received_amount and received_currency - and charges the fee; wrong_amount, too_late and not_this_payment reject it and the buyer sees the reason. The first decision wins: when Cryptunnel operations or your Telegram pressed first, the outcome is already_decided and the appeal carries their decision. */
+        /**
+         * Decide appeal
+         * @description Manual confirmation, step two: decide a waiting appeal. approved confirms the payment with the transfer as it arrived - the webhook carries received_amount and received_currency - and charges the fee; wrong_amount, too_late and not_this_payment reject it and the buyer sees the reason. The first decision wins: when Cryptunnel operations or your Telegram pressed first, the outcome is already_decided and the appeal carries their decision.
+         */
         post: operations["Decide Appeal"];
         delete?: never;
         options?: never;
@@ -132,7 +159,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description Get the merchant behind the credentials: the call to verify an integration works */
+        /**
+         * Get merchant info
+         * @description The merchant the credentials belong to: its id, name, account balance in USD and creation date. Call it first to check an integration authenticates - wrong credentials answer 401.
+         */
         get: operations["Get Merchant Info"];
         put?: never;
         post?: never;
@@ -149,7 +179,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description List the currencies this merchant can receive - exactly the values target_currency accepts */
+        /**
+         * List currencies
+         * @description The currencies this merchant can receive, each with its blockchain - exactly the values target_currency accepts. is_test=true lists the sandbox (testnet) ones instead.
+         */
         get: operations["List Currencies"];
         put?: never;
         post?: never;
@@ -1116,6 +1149,13 @@ export interface operations {
                         created_at: string;
                     };
                 };
+            };
+            /** @description WRONG_PAYMENT_STATUS - the payment is no longer in status created */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Payment not found */
             404: {
